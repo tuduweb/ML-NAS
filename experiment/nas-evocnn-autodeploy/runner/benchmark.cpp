@@ -60,7 +60,7 @@ static ncnn::VkAllocator* g_blob_vkallocator = 0;
 static ncnn::VkAllocator* g_staging_vkallocator = 0;
 #endif // NCNN_VULKAN
 
-void benchmark(const char* comment, const ncnn::Mat& _in, const ncnn::Option& opt)
+void benchmark(const char* comment, const char* path, const ncnn::Mat& _in, const ncnn::Option& opt, std::vector<double> &runTimes)
 {
     ncnn::Mat in = _in;
     in.fill(0.01f);
@@ -90,11 +90,17 @@ void benchmark(const char* comment, const ncnn::Mat& _in, const ncnn::Option& op
 #ifdef __EMSCRIPTEN__
 #define MODEL_DIR "/working/"
 #else
-#define MODEL_DIR ""
+//#define MODEL_DIR ""
+#define MODEL_DIR "/home/tuduweb/development/lightweight/ML-NAS/experiment/nas-evocnn-autodeploy/outputs/1678615837/ncnnModels/"
+//#define MODEL_DIR "/home/pi/lightweight/ncnnModels/"
 #endif
 
     char parampath[256];
-    sprintf(parampath, MODEL_DIR "%s.param", comment);
+    if(path == nullptr) {
+        sprintf(parampath, MODEL_DIR "%s", comment);
+    }else{
+        sprintf(parampath, "%s", path);
+    }
     net.load_param(parampath);
 
     DataReaderFromEmpty dr;
@@ -138,11 +144,9 @@ void benchmark(const char* comment, const ncnn::Mat& _in, const ncnn::Option& op
     {
         double start = ncnn::get_current_time();
 
-        {
-            ncnn::Extractor ex = net.create_extractor();
-            ex.input(input_names[0], in);
-            ex.extract(output_names[0], out);
-        }
+        ncnn::Extractor ex = net.create_extractor();
+        ex.input(input_names[0], in);
+        ex.extract(output_names[0], out);
 
         double end = ncnn::get_current_time();
 
@@ -151,11 +155,13 @@ void benchmark(const char* comment, const ncnn::Mat& _in, const ncnn::Option& op
         time_min = std::min(time_min, time);
         time_max = std::max(time_max, time);
         time_avg += time;
+
+        runTimes.push_back(time);
     }
 
     time_avg /= g_loop_count;
 
-    fprintf(stderr, "%20s  min = %7.2f  max = %7.2f  avg = %7.2f\n", comment, time_min, time_max, time_avg);
+    fprintf(stderr, "%20s  min = %7.3f  max = %7.3f  avg = %7.3f\n", comment, time_min, time_max, time_avg);
 }
 
 
@@ -182,7 +188,7 @@ void getFiles(const std::string path, std::vector<std::string> &files)
       continue;
     } else if (ptr->d_type == 8) {
       files.push_back(ptr->d_name);
-      printf("file name is %s\n", ptr->d_name);
+      //printf("file name is %s\n", ptr->d_name);
     } else if (ptr->d_type == 10) {
       continue;
     } else if (ptr->d_type == 4) {
@@ -194,34 +200,65 @@ void getFiles(const std::string path, std::vector<std::string> &files)
 }
 
 
+/**
+ * 判断是否是一个文件
+ */
+static bool is_file(std::string filename) {
+    struct stat   buffer;
+    return (stat (filename.c_str(), &buffer) == 0 && S_ISREG(buffer.st_mode));
+}
+
+/**
+ * 判断是否是一个文件夹,
+ * */
+static bool is_dir(std::string filefodler) {
+    struct stat   buffer;
+    return (stat (filefodler.c_str(), &buffer) == 0 && S_ISDIR(buffer.st_mode));
+}
+
+
 int main(int argc, char** argv)
 {
-    int loop_count = 4;
-    int num_threads = ncnn::get_physical_big_cpu_count();
-    int powersave = 2;
+    int loop_count = 200; //4; // 4
+    int num_threads = 1; // ncnn::get_physical_big_cpu_count();
+    int powersave = 0; // 2
     int gpu_device = -1;
-    int cooling_down = 1;
+    int cooling_down = 0; //1
 
-    if (argc >= 2)
-    {
-        loop_count = atoi(argv[1]);
+    std::string path;
+
+    //std::string path = "/home/tuduweb/development/lightweight/ML-NAS/experiment/nas-evocnn-autodeploy/outputs/1678615837/ncnnTestModel";
+    //std::string path = "/home/tuduweb/development/lightweight/ML-NAS/experiment/nas-evocnn-autodeploy/outputs/1678615837/ncnnModels";
+
+    if(argc >= 2) {
+        path = argv[1];
+    }else{
+        //path = "/home/tuduweb/development/lightweight/ML-NAS/experiment/nas-evocnn-autodeploy/outputs/1678615837/ncnnTestModel/indi00007_00018.ncnn.param";
+        path = "/home/tuduweb/development/lightweight/ML-NAS/experiment/nas-evocnn-autodeploy/outputs/1678615837/ncnnModels";
+
+        printf("demo path %s\n", path.c_str());
     }
-    if (argc >= 3)
-    {
-        num_threads = atoi(argv[2]);
-    }
-    if (argc >= 4)
-    {
-        powersave = atoi(argv[3]);
-    }
-    if (argc >= 5)
-    {
-        gpu_device = atoi(argv[4]);
-    }
-    if (argc >= 6)
-    {
-        cooling_down = atoi(argv[5]);
-    }
+
+    // if (argc >= 2)
+    // {
+    //     loop_count = atoi(argv[1]);
+    // }
+    // if (argc >= 3)
+    // {
+    //     num_threads = atoi(argv[2]);
+    // }
+    // if (argc >= 4)
+    // {
+    //     powersave = atoi(argv[3]);
+    // }
+    // if (argc >= 5)
+    // {
+    //     gpu_device = atoi(argv[4]);
+    // }
+    // if (argc >= 6)
+    // {
+    //     cooling_down = atoi(argv[5]);
+    // }
 
 #ifdef __EMSCRIPTEN__
     EM_ASM(
@@ -252,7 +289,7 @@ int main(int argc, char** argv)
 
     // default option
     ncnn::Option opt;
-    opt.lightmode = true;
+    opt.lightmode = false; // true
     opt.num_threads = num_threads;
     opt.blob_allocator = &g_blob_pool_allocator;
     opt.workspace_allocator = &g_workspace_pool_allocator;
@@ -261,11 +298,11 @@ int main(int argc, char** argv)
     opt.workspace_vkallocator = g_blob_vkallocator;
     opt.staging_vkallocator = g_staging_vkallocator;
 #endif // NCNN_VULKAN
-    opt.use_winograd_convolution = true;
-    opt.use_sgemm_convolution = true;
+    opt.use_winograd_convolution = true; //true;
+    opt.use_sgemm_convolution = true; // true
     opt.use_int8_inference = true;
     opt.use_vulkan_compute = use_vulkan_compute;
-    opt.use_fp16_packed = true;
+    opt.use_fp16_packed = true; // true
     opt.use_fp16_storage = true;
     opt.use_fp16_arithmetic = true;
     opt.use_int8_storage = true;
@@ -285,19 +322,52 @@ int main(int argc, char** argv)
     fprintf(stderr, "gpu_device = %d\n", gpu_device);
     fprintf(stderr, "cooling_down = %d\n", (int)g_enable_cooling_down);
 
-    // 从目录执行 或者从文件指定执行?
-    std::string path = "/home/n504/onebinary/lightweight/ML-NAS/experiment/nas-evocnn-autodeploy/models";
-    //std::string outpath = "/home/wang/Extern/cpp/ut_test/out/";
-    std::vector<string> files;
-    getFiles(path, files); 
+    //std::vector<double> runTimes(loop_count);
+    std::vector<double> runTimes;
 
-    for (int i=0; i<files.size(); i++) {
-        std::string f_name = files[i];
-        std::cout << i << f_name << std::endl;
+    // 从目录执行 或者从文件指定执行?
+    printf("!@#$beginbenchmark$#@!\n");
+    if(is_dir(path)) {
+
+        std::vector<std::string> files;
+        getFiles(path, files); 
+
+        
+        for (int i=0; i<files.size(); i++) {
+            std::string f_name = files[i];
+            //printf("%d %s\n", i, f_name.c_str());
+
+            std::string fileUri = path + "/" + f_name;
+            //printf("%d %s\n", i, fileUri.c_str());
+
+            benchmark(f_name.c_str(), nullptr, ncnn::Mat(1, 32, 32), opt, runTimes);
+            // try {
+            // // protected code
+            // benchmark(f_name.c_str(), nullptr, ncnn::Mat(1, 32, 32), opt);
+            // } catch(...) {
+            // // code to handle any exception
+            // printf("fault\n");
+            // }
+
+            // benchmark(f_name.c_str(), nullptr, ncnn::Mat(1, 32, 32), opt);
+            printf("times:");
+            for(int j = 0; j < runTimes.size(); ++j) {
+                printf(" %1.3f", runTimes[j]);
+            }
+            printf("\n");
+
+            runTimes.clear();
+        }
+
+    }else if(is_file(path)) {
+        benchmark("demo", path.c_str(), ncnn::Mat(1, 32, 32), opt, runTimes);
     }
 
+    printf("!@#$endbenchmark$#@!\n");
+
+
     // run
-    benchmark("model.ncnn", ncnn::Mat(1, 32, 32), opt);
+    //benchmark("model.ncnn", ncnn::Mat(1, 32, 32), opt);
 
 
 #if NCNN_VULKAN
