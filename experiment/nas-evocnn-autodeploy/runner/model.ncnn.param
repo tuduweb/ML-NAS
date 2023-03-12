@@ -1,0 +1,9 @@
+7767517
+7 7
+Input                    in0                      0 1 in0
+Convolution              conv_2                   1 1 in0 1 0=36 1=9 11=9 12=1 13=1 14=4 2=1 3=1 4=4 5=1 6=8748
+Convolution              conv_3                   1 1 1 2 0=15 1=5 11=5 12=1 13=1 14=2 2=1 3=1 4=2 5=1 6=13500
+Pooling                  avgpool2d_0              1 1 2 3 0=1 1=2 11=2 12=2 13=0 2=2 3=0 5=1 6=1
+Pooling                  maxpool2d_1              1 1 3 4 0=0 1=4 11=4 12=4 13=0 2=4 3=0 5=1
+Reshape                  view_5                   1 1 4 5 0=-1
+InnerProduct             linear_4                 1 1 5 out0 0=10 1=1 2=2400
