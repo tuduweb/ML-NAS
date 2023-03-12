@@ -21,6 +21,12 @@ def get_top_dest_dir():
     tdd = os.path.join('~', algo_name)
     return tdd
 
+def get_python_exec():
+    # python_config = ExecuteConfig()
+    # python_exec = python_config.read_ini_file('exe_path')
+    python_exec = "python"
+    return python_exec
+
 def exec_cmd_remote(_cmd, need_response=True):
     p = subprocess.Popen(_cmd, shell=True, stdout=subprocess.PIPE, stderr=subprocess.PIPE)
 
@@ -115,6 +121,57 @@ def sftp_transfer(sftp_sess, src_path, dst_path):
 
 #     transport.close()
 
+
+def exec_python(ssh_name, ssh_password, ip, worker_name, py_file, args, python_exec=get_python_exec()):
+    top_dir = get_top_dest_dir()
+    py_file = os.path.join(top_dir, py_file).replace('~', '/home/' + ssh_name)
+    Log.info('Execute the remote python file [(%s)%s]' % (ip, py_file))
+    _exec_cmd = 'sshpass -p \'%s\' ssh %s@%s %s  \'%s\' %s' % (
+        ssh_password, ssh_name, worker_name, python_exec, py_file,
+        ' '.join([' '.join([k, v]) for k, v in args.items()]))
+    Log.debug('Execute the cmd: %s' % (_exec_cmd))
+    _stdout, _stderr = exec_cmd_remote(_exec_cmd, need_response=False)
+    '''
+    if _stderr:
+        Log.debug(_stderr)
+    elif _stdout:
+        Log.debug(_stdout)
+    else:
+        Log.debug('No stderr nor stdout, seems the script has been successfully performed')
+    '''
+
+def analysis_benchmark_result(result):
+    pass
+
+def exec_benchmark(ssh_name, ssh_password, ip, worker_name, py_file, args, runner_exec="/home/pi/lightweight/runner"):
+    top_dir = get_top_dest_dir()
+    # py_file = os.path.join(top_dir, py_file).replace('~', '/home/' + ssh_name)
+
+    Log.info('Execute the remote runner file [(%s)%s]' % (ip, py_file))
+    # _exec_cmd = 'sshpass -p \'%s\' ssh %s@%s %s  \'%s\' %s' % (
+    #     ssh_password, ssh_name, worker_name, runner_exec, py_file,
+    #     ' '.join([' '.join([k, v]) for k, v in args.items()]))
+
+    _exec_cmd = 'sshpass -p \'%s\' ssh %s@%s %s %s' % (
+        ssh_password, ssh_name, worker_name, runner_exec,
+        ' '.join([' '.join([k, v]) for k, v in args.items()]))
+
+    Log.debug('Execute the cmd: %s' % (_exec_cmd))
+    _stdout, _stderr = exec_cmd_remote(_exec_cmd, need_response=True)
+
+    result = ""
+
+    if _stderr:
+        Log.debug("err: " + _stderr)
+    elif _stdout:
+        result = _stdout
+        Log.debug(_stdout)
+        # 正常是要这里的结果, 然后把结果进行处理..
+    else:
+        Log.debug('No stderr nor stdout, seems the script has been successfully performed')
+
+    return result
+
 if __name__ == '__main__':
     savedFileUri = "/home/n504/onebinary/lightweight/ML-NAS/experiment/nas-evocnn-autodeploy/outputs/1678535127/indi00000_00002"
 
@@ -122,6 +179,6 @@ if __name__ == '__main__':
     ## 机器种类：树莓派
 
     # 把模型.param发送到对应机器上
-    transfer_file_relative("pi", "raspberry", "192.168.30.82", "192.168.30.82", "/home/n504/onebinary/lightweight/ML-NAS/experiment/nas-evocnn-autodeploy/outputs/1678535127/", "./demo/")
-
+    transfer_file_relative("pi", "raspberry", "192.168.30.82", "192.168.30.82", "/home/tuduweb/development/lightweight/ML-NAS/experiment/nas-evocnn-autodeploy/outputs/1678535127", "./demo/")
+    exec_benchmark("pi", "raspberry", "192.168.30.82", "192.168.30.82", "argnone", {})
     # 执行判别, 并获取结果
