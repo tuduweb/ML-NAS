@@ -1,0 +1,69 @@
+loop_count = 1000
+num_threads = 4
+powersave = 0
+gpu_device = -1
+cooling_down = 0
+indi00046_00013.ncnn.param  min =    1.18  max =    3.49  avg =    1.25
+indi00036_00036.ncnn.param  min =    2.18  max =    2.36  avg =    2.26
+indi00038_00035.ncnn.param  min =    1.55  max =    1.78  avg =    1.61
+indi00038_00044.ncnn.param  min =    0.73  max =    0.82  avg =    0.78
+indi00040_00019.ncnn.param  min =    1.20  max =    1.33  avg =    1.24
+indi00021_00027.ncnn.param  min =    0.91  max =    1.03  avg =    0.94
+indi00017_00020.ncnn.param  min =    0.71  max =    0.76  avg =    0.73
+indi00044_00026.ncnn.param  min =    1.29  max =    1.46  avg =    1.34
+indi00045_00016.ncnn.param  min =    1.20  max =    1.39  avg =    1.23
+indi00034_00000.ncnn.param  min =    0.34  max =    0.42  avg =    0.36
+indi00026_00004.ncnn.param  min =    0.71  max =    0.82  avg =    0.74
+indi00025_00049.ncnn.param  min =    0.95  max =    1.06  avg =    0.97
+indi00018_00037.ncnn.param  min =    0.84  max =    0.94  avg =    0.87
+indi00004_00048.ncnn.param  min =    0.70  max =    1.00  avg =    0.73
+indi00000_00049.ncnn.param  min =    2.90  max =    3.47  avg =    2.97
+indi00048_00020.ncnn.param  min =    1.18  max =    1.32  avg =    1.23
+indi00034_00032.ncnn.param  min =    0.34  max =    0.40  avg =    0.36
+indi00021_00043.ncnn.param  min =    1.04  max =    1.21  avg =    1.08
+indi00024_00006.ncnn.param  min =    0.84  max =    0.95  avg =    0.87
+indi00037_00024.ncnn.param  min =    0.68  max =    0.77  avg =    0.72
+indi00001_00043.ncnn.param  min =    7.09  max =    9.00  avg =    7.71
+indi00044_00021.ncnn.param  min =    1.20  max =    1.35  avg =    1.25
+indi00024_00010.ncnn.param  min =    0.71  max =    0.82  avg =    0.73
+indi00025_00040.ncnn.param  min =    0.68  max =    0.74  avg =    0.69
+indi00027_00043.ncnn.param  min =    0.85  max =    0.97  avg =    0.88
+indi00039_00027.ncnn.param  min =    1.45  max =    1.60  avg =    1.51
+indi00041_00012.ncnn.param  min =    1.21  max =    1.62  avg =    1.25
+indi00040_00024.ncnn.param  min =    1.19  max =    1.36  avg =    1.25
+indi00004_00036.ncnn.param  min =    1.30  max =    1.77  avg =    1.36
+indi00032_00041.ncnn.param  min =    1.22  max =    1.35  avg =    1.27
+indi00040_00004.ncnn.param  min =    1.18  max =    1.30  avg =    1.23
+indi00042_00005.ncnn.param  min =    1.18  max =    1.30  avg =    1.23
+indi00044_00020.ncnn.param  min =    1.17  max =    1.38  avg =    1.23
+indi00013_00010.ncnn.param  min =    0.55  max =    0.62  avg =    0.57
+indi00046_00027.ncnn.param  min =    1.21  max =    1.35  avg =    1.27
+indi00018_00024.ncnn.param  min =    0.51  max =    0.59  avg =    0.54
+indi00035_00026.ncnn.param  min =    0.33  max =    0.41  avg =    0.36
+indi00035_00003.ncnn.param  min =    0.33  max =    0.39  avg =    0.36
+indi00043_00021.ncnn.param  min =    1.19  max =    1.33  avg =    1.23
+indi00011_00028.ncnn.param  min =    0.71  max =    0.78  avg =    0.74
+indi00004_00007.ncnn.param  min =    5.63  max =    6.77  avg =    6.12
+indi00047_00012.ncnn.param  min =    1.17  max =    1.31  avg =    1.22
+indi00020_00004.ncnn.param  min =    0.56  max =    0.65  avg =    0.58
+indi00031_00009.ncnn.param  min =    1.17  max =    1.30  avg =    1.20
+indi00031_00024.ncnn.param  min =    0.69  max =    0.78  avg =    0.72
+indi00027_00036.ncnn.param  min =    0.84  max =    0.96  avg =    0.87
+indi00024_00011.ncnn.param  min =    0.84  max =    0.98  avg =    0.87
+indi00019_00023.ncnn.param  min =    1.03  max =    1.16  avg =    1.06
+indi00041_00031.ncnn.param  min =    1.25  max =    1.44  avg =    1.30
+indi00034_00031.ncnn.param  min =    0.34  max =    0.40  avg =    0.36
+indi00041_00021.ncnn.param  min =    1.21  max =    1.35  avg =    1.25
+indi00007_00009.ncnn.param  min =    0.71  max =    0.85  avg =    0.74
+indi00034_00046.ncnn.param  min =    0.33  max =    0.40  avg =    0.36
+indi00024_00007.ncnn.param  min =    0.83  max =    0.94  avg =    0.86
+indi00045_00021.ncnn.param  min =    1.17  max =    1.40  avg =    1.23
+indi00023_00048.ncnn.param  min =    0.84  max =    0.95  avg =    0.88
+indi00009_00001.ncnn.param  min =    1.81  max =    2.04  avg =    1.90
+indi00018_00041.ncnn.param  min =    7.75  max =   10.02  avg =    8.60
+indi00008_00021.ncnn.param  min =    1.49  max =    1.56  avg =    1.50
+indi00015_00017.ncnn.param  min =    0.73  max =    0.83  avg =    0.76
+indi00049_00004.ncnn.param  min =    1.18  max =    1.34  avg =    1.23
+indi00048_00041.ncnn.param  min =    1.18  max =    1.31  avg =    1.23
+indi00044_00027.ncnn.param  min =    1.18  max =    1.29  avg =    1.23
+Segmentation fault
