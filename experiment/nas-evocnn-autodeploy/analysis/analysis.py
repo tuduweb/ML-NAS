@@ -37,9 +37,10 @@ def analysisOneRunner_times(timesResult :str) -> float:
     # print(df.describe())
 
     # print("median")
-    print(df.median())
+    #print(df.median().values[0])
 
-    return 0
+    # 类型转换, 转换成python中的变量类型
+    return df.median().values[0]
 
 def analysisOneRunnerResult(result :str) -> int:
     print(result)
@@ -80,9 +81,11 @@ def analysisOneRunnerResult(result :str) -> int:
 
 if __name__ == '__main__':
 
-    f = open("data2.txt",'r',encoding='utf-8')
+    f = open("/home/tuduweb/development/lightweight/ML-NAS/experiment/nas-evocnn-autodeploy/analysis/testResources/runnerResult.txt",'r',encoding='utf-8')
     fileLines = f.readlines()
     f.close()
+
+    timeCosts = []
 
     flag = 0
     for line in fileLines:
@@ -91,26 +94,36 @@ if __name__ == '__main__':
                 flag = 1
             continue
 
-        print(line)
-        #csvRow = line.split()
-        #writer.writerow(csvRow)
-
         expItems = re.findall(timesPattern, "".join(fileLines))
 
         print(expItems)
 
         for item in expItems:
-            print("="*20)
-            print("name", item[0])
-            analysisOneRunner_times(item[1])
+            itemName = item[0]
+            itemTimeCost = analysisOneRunner_times(item[1])
+
+            timeCosts.append({
+                "name": itemName,
+                "timeCost": itemTimeCost
+            })
+
+
         break
 
 
     print("*"*20)
+    print(timeCosts)
 
-    #analysisOneRunnerResult(testData)
+    form_header = ['name', 'timeCost']
+    df = pd.DataFrame(columns=form_header)
+
+    for idx, item in enumerate(timeCosts):
+        df.loc[idx] = [item["name"].replace(".ncnn.param", ""), item["timeCost"]]
 
 
-    # a = re.findall("[^a-z]", "匹配s规则这s个字符串是否s匹配f规则则re则则则")
+    df.sort_values("name", inplace=True, ascending=True)
+    print(df)
+
+    df.to_csv('result_cost.csv',index=False)
 
 
