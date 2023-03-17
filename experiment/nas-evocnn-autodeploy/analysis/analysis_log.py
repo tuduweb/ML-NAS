@@ -7,12 +7,6 @@ import pandas as pd
 class RunnerAnalysis(object):
     pass
 
-testData = """indi00048_00020.ncnn.param  min =   0.131  max =   0.303  avg =   0.139
-times: 0.178 0.225 0.179 0.198 0.132 0.131 0.132 0.131 0.132 0.132 0.132 0.303 0.217 0.132 0.133 0.132 0.133 0.131 0.180 0.132 0.132 0.131 0.131 0.133 0.132 0.131 0.133 0.132 0.132 0.132 0.132 0.132 0.132 0.131 0.132 0.132 0.132 0.133 0.132 0.131 0.131 0.132 0.132 0.132 0.132 0.132 0.131 0.164 0.150 0.132 0.131 0.132 0.132 0.132 0.132 0.132 0.133 0.132 0.131 0.132 0.133 0.131 0.132 0.132 0.132 0.131 0.132 0.131 0.132 0.132 0.132 0.132 0.133 0.132 0.132 0.132 0.133 0.194 0.132 0.132 0.132 0.132 0.132 0.131 0.132 0.132 0.132 0.132 0.132 0.132 0.132 0.132 0.162 0.136 0.135 0.135 0.135 0.135 0.135 0.135 0.136 0.135 0.136 0.135 0.135 0.135 0.187 0.136 0.136 0.135 0.136 0.135 0.135 0.135 0.135 0.136 0.135 0.134 0.134 0.135 0.135 0.135 0.136 0.135 0.136 0.136 0.136 0.135 0.136 0.152 0.238 0.198 0.135 0.135 0.180 0.151 0.135 0.135 0.136 0.134 0.135 0.135 0.135 0.135 0.136 0.135 0.135 0.136 0.135 0.135 0.136 0.134 0.135 0.134 0.136 0.136 0.136 0.134 0.136 0.136 0.135 0.135 0.139 0.182 0.135 0.136 0.136 0.135 0.134 0.134 0.136 0.136 0.135 0.136 0.136 0.135 0.135 0.136 0.135 0.135 0.135 0.135 0.136 0.136 0.136 0.136 0.135 0.135 0.136 0.134 0.136 0.165 0.152 0.135 0.136 0.135 0.136 0.136 0.135 0.135"""
-
-timesPattern = re.compile(r'(indi[\w.]*)[\w*=. ]*\ntimes:([\d. ]+)')
-
-
 
 def get_file(file_path: str, suffix: str, res_file_path: list) -> list:
     """获取路径下的指定文件类型后缀的文件
@@ -45,46 +39,81 @@ def analysisOneRunnerResult(result :str) -> int:
 def analysisOneLogResult(result :str) -> int:
     pass
 
-def analysisOneLogFile(filePath: str) -> list:
+def analysisOneLogFile(filePath: str, isSearchEpoch: bool = True) -> tuple:
 
     f = open(filePath,'r',encoding='utf-8')
     fileLines = f.readlines()
     f.close()
 
-    _keyword = "Finished-Acc"
+    segs = []
+
+    _startLine = -1
+    _endLine = -1
+
+    _startKeywords = "Used "
+    _endKeywords = "Finished-Acc"
     _pattern = re.compile(r'Finished-Acc:(0.[\d.]+)')
+
+    for idx, line in enumerate(fileLines):
+        # drop no end data
+        if _startKeywords in line:
+            _startLine = idx
+        
+        if _startLine >= 0 and _endKeywords in line:
+            _endLine = idx
+
+        if _startLine >= 0 and _endLine > _startLine:
+            segs.append((_startLine, _endLine))
+            _startLine = _endLine = -1
+
+
 
     accResult = []
 
-    for idx, line in enumerate(fileLines):
-        if _keyword not in line:
-            continue
+    """
+    [2023-03-17 12:36:20.075108]-Train-Epoch:  1,  Loss: 1.683, Acc:0.377
+    [2023-03-17 12:36:22.275163]-Valid-Epoch:  1, Loss:1.972, Acc:0.356
+    [2023-03-17 12:36:39.264636]-Train-Epoch:  2,  Loss: 1.427, Acc:0.481
+    [2023-03-17 12:36:41.382842]-Valid-Epoch:  2, Loss:1.668, Acc:0.432
+    """
+
+    _epochPattern = re.compile(r'\[(.+)\]-(\w+)-Epoch:\s*(\d+),\s*(.*)')
+
+    epochResults = []
+
+    for segId, (_s, _e) in enumerate(segs):
+        _epochResult = []
+        for idx, line in enumerate(fileLines[_s: _e + 1]):
+
+            if _endKeywords in line:    
+                ret = re.search(_pattern, line)
+
+                if ret is None:
+                    continue
+                
+                accResult.append(ret[1])
         
-        ret = re.search(_pattern, line)
+            elif isSearchEpoch:
+                ret = re.search(_epochPattern, line)
+                if ret is None:
+                    continue
+                
+                # time, type, round, logs
+                rets = (ret[1], ret[2], ret[3], ret[4])
 
-        if ret is None:
-            continue
-        
-        accResult.append(ret[1])
-    
-    # print(accResult)
+                _epochResult.append(rets)
 
-    return accResult
+        if isSearchEpoch:
+            epochResults.append(_epochResult)
 
+    print(accResult)
+    print(epochResults)
 
-def analysisOnePopLogFile(filePath: str) -> list:
+    return accResult, epochResults
 
-    f = open(filePath,'r',encoding='utf-8')
-    fileLines = f.readlines()
-    f.close()
+def analysisOneLogFile_AccResult(filePath: str) -> list:
+    return analysisOneLogFile(filePath = filePath, isSearchEpoch = False)[0]
 
-    structurePattern = re.compile(r"indi:(\w+)\nAcc_mean:(\d+.\d+)\nAcc_std:(\d+.\d+)\nComplexity:(\d+)\n")
-    items = re.findall(structurePattern, "".join(fileLines))
-
-    print(items)
-
-
-    pass
 
 
 import subprocess
@@ -129,7 +158,7 @@ def analysis_log_for_files(logFilesPath: str) -> list:
     for filePath in files:
         fileName = ".".join(os.path.basename(filePath).split(".")[:-1])
         #print(fileName)
-        accResults = analysisOneLogFile(filePath)
+        accResults = analysisOneLogFile_AccResult(filePath)
 
         logParsedResult.append({
             "name": fileName,
@@ -158,21 +187,24 @@ if __name__ == '__main__':
         # _, std_err = exec_cmd_remote(remote_cmd, need_response=True)
         pass
 
-    files = get_file("/home/n504/onebinary/BenchENAS-review/BenchENAS_linux_platform/runtime/aecnn_0317/log", ".txt", [])
-    print(files)
+    filesPath = "/home/n504/onebinary/BenchENAS-review/BenchENAS_linux_platform/runtime/aecnn_0317/log"
+    files = get_file(filesPath, ".txt", [])
+    print("files[%s] num: %d" % (filesPath, len(files)))
 
     logParsedResult = []
 
     for filePath in files:
         fileName = ".".join(os.path.basename(filePath).split(".")[:-1])
         #print(fileName)
-        accResults = analysisOneLogFile(filePath)
+        accResults = analysisOneLogFile_AccResult(filePath)
 
         logParsedResult.append({
             "name": fileName,
             "accResults": accResults,
             "acc": max(accResults) if len(accResults) != 0 else 0
         })
+
+        break
 
 
     form_header = ['name', 'acc', 'accResults']
@@ -187,7 +219,7 @@ if __name__ == '__main__':
 
     print(df)
 
-    df.to_csv('result2.csv',index=False)
+    # df.to_csv('result2.csv',index=False)
 
 
     #print(df["name"].iloc[ 0: 20, ].values.tolist())
