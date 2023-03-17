@@ -67,7 +67,7 @@ def analysisOneLogFile(filePath: str) -> list:
         
         accResult.append(ret[1])
     
-    print(accResult)
+    # print(accResult)
 
     return accResult
 
@@ -87,9 +87,78 @@ def analysisOnePopLogFile(filePath: str) -> list:
     pass
 
 
+import subprocess
+import selectors
+
+def exec_cmd_remote(_cmd, need_response=True):
+    p = subprocess.Popen(_cmd, shell=True, stdout=subprocess.PIPE, stderr=subprocess.PIPE)
+
+    stdout_str = None
+    stderr_str = None
+
+    if need_response:
+        sel = selectors.DefaultSelector()
+        sel.register(p.stdout, selectors.EVENT_READ)
+        sel.register(p.stderr, selectors.EVENT_READ)
+        stdout_ = None
+        stderr_ = None
+        for key, _ in sel.select():
+            data = key.fileobj.readlines()
+
+            if key.fileobj is p.stdout:
+                stdout_ = data
+            else:
+                stderr_ = data
+
+        if stdout_ is not None and len(stdout_) > 0:
+            stdout_str = ''.join([_.decode('utf-8') for _ in stdout_])
+
+        if stderr_ is not None and len(stderr_) > 0:
+            stderr_str = ''.join([_.decode('utf-8') for _ in stderr_])
+
+    return stdout_str, stderr_str
+
+
+def analysis_log_for_files(logFilesPath: str) -> list:
+
+    files = get_file(logFilesPath, ".txt", [])
+    print("analysis path: %s" % logFilesPath)
+
+    logParsedResult = []
+
+    for filePath in files:
+        fileName = ".".join(os.path.basename(filePath).split(".")[:-1])
+        #print(fileName)
+        accResults = analysisOneLogFile(filePath)
+
+        logParsedResult.append({
+            "name": fileName,
+            "accResults": accResults,
+            "acc": max(accResults) if len(accResults) != 0 else 0
+        })
+
+    return logParsedResult
 
 if __name__ == '__main__':
-    files = get_file("/home/tuduweb/development/lightweight/ML-NAS/resources/evocnn_minst/log", ".txt", [])
+
+    isAnalysisRemote = True
+
+    # ana
+    if isAnalysisRemote:
+        # scp -P 22 n504@lab-3090-3:~/.. ~/..
+        # Method 1: 从远端获取文件.. 再使用本地的方式
+        # remote_cmd = 'sshpass -p {ssh_passwd} ssh {ssh_name}@{worker_ip} -p {port} kill -TERM -- -{PID}'.format(
+        #     ssh_name = ssh_name,
+        #     ssh_passwd = ssh_passwd,
+        #     worker_ip = worker_ip,
+        #     port = ssh_port,
+        #     PID = worker_pid
+        # )
+
+        # _, std_err = exec_cmd_remote(remote_cmd, need_response=True)
+        pass
+
+    files = get_file("/home/n504/onebinary/BenchENAS-review/BenchENAS_linux_platform/runtime/aecnn_0317/log", ".txt", [])
     print(files)
 
     logParsedResult = []

@@ -94,7 +94,7 @@ def analysisOnePopLogFile(filePath: str) -> list:
 
 if __name__ == '__main__':
 
-    popFiles = get_file("/home/tuduweb/development/lightweight/ML-NAS/resources/evocnn_minst/populations", ".txt", [])
+    popFiles = get_file("/home/n504/onebinary/BenchENAS-review/BenchENAS_linux_platform/runtime/aecnn_0317/populations", ".txt", [])
 
     popResults = []
 
