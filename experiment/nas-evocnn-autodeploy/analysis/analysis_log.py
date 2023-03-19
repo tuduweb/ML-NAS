@@ -8,7 +8,7 @@ class RunnerAnalysis(object):
     pass
 
 
-def get_file(file_path: str, suffix: str, res_file_path: list) -> list:
+def get_file(file_path: str, suffix: str, res_file_path: list, keyword: str = "") -> list:
     """获取路径下的指定文件类型后缀的文件
 
     Args:
@@ -23,8 +23,10 @@ def get_file(file_path: str, suffix: str, res_file_path: list) -> list:
     for file in os.listdir(file_path):
 
         if os.path.isdir(os.path.join(file_path, file)):
-            get_file(os.path.join(file_path, file), suffix, res_file_path)
+            get_file(os.path.join(file_path, file), suffix, res_file_path, keyword=keyword)
         else:
+            if keyword != '' and keyword in file:
+                continue
             res_file_path.append(os.path.join(file_path, file))
 
     # endswith：表示以suffix结尾。可根据需要自行修改；如：startswith：表示以suffix开头，__contains__：包含suffix字符串
@@ -39,7 +41,13 @@ def analysisOneRunnerResult(result :str) -> int:
 def analysisOneLogResult(result :str) -> int:
     pass
 
-def analysisOneLogFile(filePath: str, isSearchEpoch: bool = True) -> tuple:
+def analysisOneLogFile(filePath: str, isSearchEpoch: bool = True, endKeyword = "Finished-Error") -> tuple:
+    """
+    endKeyword = "Finished-Acc"
+    endKeyword = "Finished-Error"
+    """
+
+    isEndError = True if endKeyword == "Finished-Error" else False
 
     f = open(filePath,'r',encoding='utf-8')
     fileLines = f.readlines()
@@ -51,8 +59,8 @@ def analysisOneLogFile(filePath: str, isSearchEpoch: bool = True) -> tuple:
     _endLine = -1
 
     _startKeywords = "Used "
-    _endKeywords = "Finished-Acc"
-    _pattern = re.compile(r'Finished-Acc:(0.[\d.]+)')
+    _endKeywords = endKeyword
+    _pattern = re.compile(endKeyword + r':(0.[\d.]+)')
 
     for idx, line in enumerate(fileLines):
         # drop no end data
@@ -77,6 +85,15 @@ def analysisOneLogFile(filePath: str, isSearchEpoch: bool = True) -> tuple:
     [2023-03-17 12:36:41.382842]-Valid-Epoch:  2, Loss:1.668, Acc:0.432
     """
 
+    """
+    [2023-03-18 16:23:19.759561]-Valid-Epoch:  8, Loss:0.19160, Acc:0.95225
+    [2023-03-18 16:24:17.845441]-Train-Epoch:  9,  Loss: 0.28218, Acc:0.91894
+    [2023-03-18 16:24:27.807154]-Valid-Epoch:  9, Loss:0.20471, Acc:0.94417
+    [2023-03-18 16:25:09.543063]-Train-Epoch: 10,  Loss: 0.27824, Acc:0.91923
+    [2023-03-18 16:25:16.874860]-Valid-Epoch: 10, Loss:0.19239, Acc:0.94617
+    [2023-03-18 16:25:16.876941]-Finished-Error:0.04775, num-para:1430447
+    """
+
     _epochPattern = re.compile(r'\[(.+)\]-(\w+)-Epoch:\s*(\d+),\s*(.*)')
 
     epochResults = []
@@ -91,7 +108,10 @@ def analysisOneLogFile(filePath: str, isSearchEpoch: bool = True) -> tuple:
                 if ret is None:
                     continue
                 
-                accResult.append(ret[1])
+                res = float(ret[1])
+                if isEndError:
+                    res = 1.0 - res
+                accResult.append(res)
         
             elif isSearchEpoch:
                 ret = re.search(_epochPattern, line)
@@ -105,9 +125,6 @@ def analysisOneLogFile(filePath: str, isSearchEpoch: bool = True) -> tuple:
 
         if isSearchEpoch:
             epochResults.append(_epochResult)
-
-    print(accResult)
-    print(epochResults)
 
     return accResult, epochResults
 
@@ -168,35 +185,55 @@ def analysis_log_for_files(logFilesPath: str) -> list:
 
     return logParsedResult
 
-if __name__ == '__main__':
 
-    isAnalysisRemote = True
+# def make_logs_group(results: list) -> int:
+#     for item in results:
+#         print(item[0])
+#     pass
 
-    # ana
-    if isAnalysisRemote:
-        # scp -P 22 n504@lab-3090-3:~/.. ~/..
-        # Method 1: 从远端获取文件.. 再使用本地的方式
-        # remote_cmd = 'sshpass -p {ssh_passwd} ssh {ssh_name}@{worker_ip} -p {port} kill -TERM -- -{PID}'.format(
-        #     ssh_name = ssh_name,
-        #     ssh_passwd = ssh_passwd,
-        #     worker_ip = worker_ip,
-        #     port = ssh_port,
-        #     PID = worker_pid
-        # )
+def analysis_trainLog_for_files(logFilesPath: str) -> map:
 
-        # _, std_err = exec_cmd_remote(remote_cmd, need_response=True)
-        pass
+    files = get_file(logFilesPath, ".txt", [])
+    print("analysis path: %s" % logFilesPath)
 
-    filesPath = "/home/n504/onebinary/BenchENAS-review/BenchENAS_linux_platform/runtime/aecnn_0317/log"
-    files = get_file(filesPath, ".txt", [])
-    print("files[%s] num: %d" % (filesPath, len(files)))
-
-    logParsedResult = []
+    logParsedResult = {}
 
     for filePath in files:
         fileName = ".".join(os.path.basename(filePath).split(".")[:-1])
         #print(fileName)
-        accResults = analysisOneLogFile_AccResult(filePath)
+        _, oneTrainLog = analysisOneLogFile(filePath)
+
+        if len(oneTrainLog) == 0:
+            print("%s empty" % filePath)
+        else:
+            print(oneTrainLog)
+        logParsedResult[fileName] = oneTrainLog
+
+    return logParsedResult
+
+def main(filesPath: str = "/home/n504/onebinary/ENAS_6379/runtime/MO_evocnn_MNIST_review", maxReturnNum: int = 20) -> list:
+
+    paths = {
+        "logPath": os.path.realpath(os.path.join(filesPath, "log")),
+        "scriptPath": os.path.realpath(os.path.join(filesPath, "scripts")),
+    }
+
+    files = get_file(paths["logPath"], ".txt", [])
+    print("files[%s] num: %d" % (paths["logPath"], len(files)))
+
+    logParsedResult = []
+
+    logGenAndIndiResult = {}
+    isGenerateGenAndIndiResult = False
+
+    isGenerate_trainResult = False
+
+    for filePath in files:
+        fileName = ".".join(os.path.basename(filePath).split(".")[:-1])
+        #print(fileName)
+        #accResults = analysisOneLogFile_AccResult(filePath)
+
+        accResults, trainLogs = analysisOneLogFile(filePath = filePath, isSearchEpoch = isGenerate_trainResult)
 
         logParsedResult.append({
             "name": fileName,
@@ -204,25 +241,75 @@ if __name__ == '__main__':
             "acc": max(accResults) if len(accResults) != 0 else 0
         })
 
-        break
 
+        # Generate GenAndIndi Result
+        if isGenerateGenAndIndiResult:
+            genAndIndi = fileName.replace('indi', '').split('_')
+            if len(genAndIndi) != 2:
+                continue
 
-    form_header = ['name', 'acc', 'accResults']
+            gen = genAndIndi[0]
+            indi = genAndIndi[1]
+            if gen not in logGenAndIndiResult.keys():
+                logGenAndIndiResult[gen] = {}
+
+            logGenAndIndiResult[gen][indi] = {
+                "acc": max(accResults) if len(accResults) != 0 else 0,
+                "accResults": accResults
+            }
+
+        # trainLog
+        if isGenerate_trainResult:
+            for trainLog in trainLogs:
+                for log in trainLog:
+                    print(log)
+
+    form_header = ['name', 'gen', 'indi', 'acc', 'accResults']
     df = pd.DataFrame(columns=form_header)
 
     for idx, item in enumerate(logParsedResult):
-        df.loc[idx] = [item["name"], item["acc"], item["accResults"]]
-        print(item)
+        genAndIndi = item["name"].replace("indi", "").split("_")
+        if len(genAndIndi) == 2:
+            df.loc[idx] = [item["name"], genAndIndi[0], genAndIndi[1], item["acc"], item["accResults"]]
+        else:
+            df.loc[idx] = [item["name"], "-1", "-1", item["acc"], item["accResults"]]
 
     df[["acc"]] = df[["acc"]].apply(pd.to_numeric)
     df.sort_values("acc", inplace=True, ascending=False)
 
     print(df)
 
-    # df.to_csv('result2.csv',index=False)
+    df.to_csv('result3.csv',index=False)
 
 
     #print(df["name"].iloc[ 0: 20, ].values.tolist())
-    print(df[["name", "acc"]].iloc[ 0: 20, ].values.tolist())
+    #print(df[["name", "acc"]].iloc[ 0: 20, ].values.tolist())
 
     # 取得Top的一些数据
+    _length = len(df)
+    filterList = []
+    if maxReturnNum == -1 or maxReturnNum >= _length:
+        filterList = df[["name", "acc"]].values.tolist()
+    else:
+        filterList = df[["name", "acc"]].iloc[ 0: maxReturnNum, ].values.tolist()
+    
+    
+    returnList = []
+
+    for idx, item in enumerate(filterList):
+        scriptUri = os.path.realpath(os.path.join(paths["scriptPath"], item[0] + ".py"))
+
+        if not os.path.exists(scriptUri):
+            continue
+
+        returnList.append({
+            "scriptUri": scriptUri,
+            "acc": item[1],
+            "rank": idx + 1
+        })
+
+    print("log.main return", returnList)
+    return returnList
+
+if __name__ == '__main__':
+    main()

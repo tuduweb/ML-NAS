@@ -1,22 +1,15 @@
 import os
-import sys
-import pandas as pd
+import argparse
 
-import analysis_log
-
+from analysis import analysis_log
 
 
-class Analysis_Works(object):
-    pass
-
-
-if __name__ == '__main__':
-    # 面向当前框架系统..
-    runtimePath = ""
+def generate_log():
     runtimeTargets = [
         # "/home/n504/onebinary/BenchENAS-review/BenchENAS_linux_platform/runtime/nsga_net_0317",
         # "/home/n504/onebinary/BenchENAS-review/BenchENAS_linux_platform/runtime/aecnn_0317",
-        "/home/n504/onebinary/BenchENAS-review/BenchENAS_linux_platform/runtime/evocnn_0317",
+        #"/home/n504/onebinary/BenchENAS-review/BenchENAS_linux_platform/runtime/evocnn_0317",
+        "/home/n504/onebinary/ENAS_6379/runtime/MO_evocnn_MNIST_review",
     ]
 
     for target in runtimeTargets:
@@ -39,23 +32,19 @@ if __name__ == '__main__':
 
         logParsedResult = analysis_log.analysis_log_for_files(targetPaths["logPath"])
 
-        #print(logParsedResult)
+        # 还想要获取参数量 等信息
+        for item in logParsedResult:
+            scriptUri = item["name"] + ".py"
+            print(os.path.join(targetPaths["scriptPath"], scriptUri))
 
-        form_header = ['name', 'acc', 'accResults']
-        df = pd.DataFrame(columns=form_header)
 
-        for idx, item in enumerate(logParsedResult):
-            df.loc[idx] = [item["name"], item["acc"], item["accResults"]]
-            # print(item)
+if __name__ == '__main__':
 
-        df[["acc"]] = df[["acc"]].apply(pd.to_numeric)
-        df.sort_values("acc", inplace=True, ascending=False)
+    parser = argparse.ArgumentParser(description='bin Neural Network pytorch Arch')
+    parser.add_argument('--cuda', '-c', help='是否应用cuda', default=0)
+    parser.add_argument('-task', '--task', help='任务种类', default="log")
+    global_args = parser.parse_args()
 
-        print(df)
+    if global_args.task == "log":
+        generate_log()
 
-        print("*"*20)
-
-        #epochLog = analysis_log.analysis_trainLog_for_files(targetPaths["logPath"])
-        #print(epochLog)
-        pass
-    pass
