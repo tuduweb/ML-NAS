@@ -30,8 +30,8 @@ def get_python_exec():
 def exec_cmd_remote(_cmd, need_response=True):
     p = subprocess.Popen(_cmd, shell=True, stdout=subprocess.PIPE, stderr=subprocess.PIPE)
 
-    stdout_str = None
-    stderr_str = None
+    stdout_str = ""
+    stderr_str = ""
 
     if need_response:
         sel = selectors.DefaultSelector()
@@ -55,16 +55,16 @@ def exec_cmd_remote(_cmd, need_response=True):
 
     return stdout_str, stderr_str
 
-def makedirs(ssh_name, ssh_password, ip, dir_path):
-    _mk_cmd = 'sshpass -p \'%s\' ssh %s@%s mkdir -p \'%s\'' % (
-        ssh_password, ssh_name, ip, dir_path)
+def makedirs(ssh_name, ssh_password, ip, dir_path, port = 22):
+    _mk_cmd = 'sshpass -p \'%s\' ssh -p %d %s@%s mkdir -p \'%s\'' % (
+        ssh_password, port, ssh_name, ip, dir_path)
     Log.debug('Execute the cmd: %s' % (_mk_cmd))
     _, stderr_ = exec_cmd_remote(_mk_cmd)
     if stderr_ is not None:
         Log.warn(stderr_)
 
 
-def transfer_file_relative(ssh_name, ssh_password, ip, worker_name, source, dest):
+def transfer_file_relative(ssh_name, ssh_password, ip, worker_name, source, dest, port = 22):
     """Use relative path to transfer file, both source and dest are relative path
     """
 
@@ -72,9 +72,9 @@ def transfer_file_relative(ssh_name, ssh_password, ip, worker_name, source, dest
     full_path_dest = os.path.join(top_dir, dest)
     full_path_source = os.path.join(get_local_path(), source)
     # full_path_source = full_path_source.replace(' ','\\\\ ')
-    makedirs(ssh_name, ssh_password, ip, os.path.dirname(full_path_dest))
-    _cmd = 'sshpass -p \'%s\' scp -r \'%s\' \'%s@%s:%s\'' % (
-        ssh_password, full_path_source, ssh_name, worker_name, full_path_dest)
+    makedirs(ssh_name, ssh_password, ip, os.path.dirname(full_path_dest), port = port)
+    _cmd = 'sshpass -p \'%s\' scp -P %d -r \'%s\' \'%s@%s:%s\'' % (
+        ssh_password, port, full_path_source, ssh_name, worker_name, full_path_dest)
     subprocess.Popen(_cmd, stdout=subprocess.PIPE, shell=True).stdout.read().decode()
 
 
@@ -143,17 +143,96 @@ def exec_python(ssh_name, ssh_password, ip, worker_name, py_file, args, python_e
 def analysis_benchmark_result(result):
     pass
 
-def exec_benchmark(ssh_name, ssh_password, ip, worker_name, py_file, args, runner_exec="/home/pi/lightweight/runner"):
-    top_dir = get_top_dest_dir()
-    # py_file = os.path.join(top_dir, py_file).replace('~', '/home/' + ssh_name)
 
-    Log.info('Execute the remote runner file [(%s)%s]' % (ip, py_file))
+class MachineConfig(object):
+    def __init__(self) -> None:
+        self.type = "linux"
+        self.config = {}
+        self.execProgram = ""
+
+        self.workPath = "~"
+        pass
+
+class RaspMachineConfig(MachineConfig):
+    def __init__(self, ip = "") -> None:
+        super().__init__()
+
+        self.config = {
+            "user": "pi",
+            "password": "",
+            "ip": "192.168.30.82",
+            "port": 8122,
+        }
+
+        if ip != "":
+            self.config["ip"] = ip
+
+        self.execProgram = "/home/pi/lightweight/nas-runner/build/benchncnn"
+
+        self.workPath = "~/onebinary/lightweight"
+
+class LabX86I7MachineConfig(MachineConfig):
+    def __init__(self, ip = "") -> None:
+        super().__init__()
+
+        self.config = {
+            "user": "n504",
+            "password": "",
+            "ip": "172.20.144.73",
+            "port": 22,
+        }
+
+        if ip != "":
+            self.config["ip"] = ip
+
+        self.execProgram = "/home/n504/onebinary/lightweight/ncnnrunner/runner"
+
+        self.workPath = "~/onebinary/lightweight"
+
+class Binx1eMachineConfig(MachineConfig):
+    def __init__(self, ip = "") -> None:
+        super().__init__()
+
+        self.config = {
+            "user": "tuduweb",
+            "password": "",
+            "ip": "172.16.72.144",
+            "port": 8822,
+        }
+
+        if ip != "":
+            self.config["ip"] = ip
+
+        # self.execProgram = "/home/tuduweb/onebinary/lightweight/ncnnrunner/runner"
+        self.execProgram = "/home/tuduweb/development/lightweight/ML-NAS/experiment/nas-evocnn-autodeploy/runner/build/benchncnn"
+
+        self.workPath = "~/onebinary/lightweight"
+
+def Machine_exec_benchmark(machine: MachineConfig, filesUri : str, args = {}):
+    ssh_name = machine.config['user']
+    ssh_password = machine.config['password']
+    ip = machine.config['ip']
+    worker_name = ip
+
+    # 被执行的文件/文件夹地址
+    uri = filesUri
+    runner_exec = machine.execProgram
+    
+    result = exec_benchmark(ssh_name, ssh_password, ip, worker_name, uri, args, runner_exec, port = machine.config["port"])
+
+    return 0, result
+
+def exec_benchmark(ssh_name, ssh_password, ip, worker_name, filesUri, args, runner_exec="/home/pi/lightweight/runner", machine : MachineConfig = None, port = 22):
+    top_dir = get_top_dest_dir()
+    # filesUri = os.path.join(top_dir, filesUri).replace('~', '/home/' + ssh_name)
+
+    Log.info('Execute the remote runner file [(%s:%d)%s]' % (ip, port, filesUri))
     # _exec_cmd = 'sshpass -p \'%s\' ssh %s@%s %s  \'%s\' %s' % (
-    #     ssh_password, ssh_name, worker_name, runner_exec, py_file,
+    #     ssh_password, ssh_name, worker_name, runner_exec, filesUri,
     #     ' '.join([' '.join([k, v]) for k, v in args.items()]))
 
-    _exec_cmd = 'sshpass -p \'%s\' ssh %s@%s %s %s' % (
-        ssh_password, ssh_name, worker_name, runner_exec,
+    _exec_cmd = 'sshpass -p \'%s\' ssh -p %d %s@%s %s %s %s' % (
+        ssh_password, port, ssh_name, worker_name, runner_exec, filesUri,
         ' '.join([' '.join([k, v]) for k, v in args.items()]))
 
     Log.debug('Execute the cmd: %s' % (_exec_cmd))
@@ -162,23 +241,74 @@ def exec_benchmark(ssh_name, ssh_password, ip, worker_name, py_file, args, runne
     result = ""
 
     if _stderr:
-        Log.debug("err: " + _stderr)
-    elif _stdout:
-        result = _stdout
-        Log.debug(_stdout)
+        Log.debug("err:" + _stderr)
+        result = result + _stderr
+
+    if _stdout:
+        result = result + _stdout
+        Log.debug("normal:" + _stdout)
         # 正常是要这里的结果, 然后把结果进行处理..
-    else:
+    if not _stderr and not _stdout:
         Log.debug('No stderr nor stdout, seems the script has been successfully performed')
 
     return result
 
+def Machine_transfer_file_relative(machine: MachineConfig, source: str, dest: str) -> int:
+    ssh_name = machine.config['user']
+    ssh_password = machine.config['password']
+    ip = machine.config['ip']
+    worker_name = ip
+
+    transfer_file_relative(ssh_name, ssh_password, ip, worker_name, source, dest, port = machine.config["port"])
+    return 0
+
+
+
 if __name__ == '__main__':
-    savedFileUri = "/home/n504/onebinary/lightweight/ML-NAS/experiment/nas-evocnn-autodeploy/outputs/1678535127/indi00000_00002"
+    machineConfig = {
+        "type": "linux",
+        "config": {
+            "user": "pi",
+            "password": "",
+            "execProgram": "/home/pi/lightweight/nas-runner/build/benchncnn"
+        },
+    }
+
+
+
 
     # 实机部署
     ## 机器种类：树莓派
 
     # 把模型.param发送到对应机器上
-    transfer_file_relative("pi", "raspberry", "192.168.30.82", "192.168.30.82", "/home/tuduweb/development/lightweight/ML-NAS/experiment/nas-evocnn-autodeploy/outputs/1678535127", "./demo/")
-    exec_benchmark("pi", "raspberry", "192.168.30.82", "192.168.30.82", "argnone", {})
+    # transfer_file_relative("pi", "raspberry", "192.168.30.82", "192.168.30.82", "/home/tuduweb/development/lightweight/ML-NAS/experiment/nas-evocnn-autodeploy/outputs/1678535127", "./demo/")
+    # exec_benchmark("pi", "raspberry", "192.168.30.82", "192.168.30.82", "argnone", {})
     # 执行判别, 并获取结果
+
+    machine = RaspMachineConfig("172.16.72.144")
+
+    #Machine_transfer_file_relative(machine, runnerConfig["sources"], runnerConfig["dest"])
+    #Machine_exec_benchmark(machine, '1678535127/ncnnModels/')
+
+    labMachine1 = LabX86I7MachineConfig()
+
+    x1eMachine = Binx1eMachineConfig()
+
+    runnerConfig = {
+        "sources": "/home/n504/onebinary/ML-NAS/experiment/nas-evocnn-autodeploy/outputs/1679144358", # path or file
+        "dest": "/home/pi/lightweight/demo/"
+    }
+
+    print(os.path.realpath(runnerConfig["sources"]).split('/')[-1]
+          )
+    
+    x1eRunnerConfig = {
+        "sources": "/home/n504/onebinary/ML-NAS/experiment/nas-evocnn-autodeploy/outputs/1679144358", # path or file
+        "dest": "/home/tuduweb/development/demo/"
+    }
+
+    Machine_transfer_file_relative(machine, runnerConfig["sources"], runnerConfig["dest"])
+    Machine_exec_benchmark(machine, '/home/pi/lightweight/demo/1679144358/ncnnModels/', args={})
+
+    #Machine_transfer_file_relative(x1eMachine, x1eRunnerConfig["sources"], x1eRunnerConfig["dest"])
+    #Machine_exec_benchmark(x1eMachine, '/home/tuduweb/development/demo/1679134959/ncnnModels/', args={})
