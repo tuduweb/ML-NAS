@@ -12,7 +12,7 @@ def gl_init(init_dict = {}):
     _global_dict_desc = {}
 
     _global_dict["start_time"] = int(time.time())
-    _global_dict["pwd"] = sys.path[0]
+    _global_dict["pwd"] = str(sys.path[0])
 
 def set_value(name, value, desc=None):
     _global_dict[name] = value

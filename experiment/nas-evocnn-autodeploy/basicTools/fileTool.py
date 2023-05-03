@@ -1,6 +1,6 @@
 import os
 
-def get_file(file_path: str, suffix: str, res_file_path: list, keyword = None) -> list:
+def get_file(file_path: str, suffix: str, res_file_path: list, keyword = "") -> list:
     """获取路径下的指定文件类型后缀的文件
 
     Args:
@@ -15,9 +15,9 @@ def get_file(file_path: str, suffix: str, res_file_path: list, keyword = None) -
     for file in os.listdir(file_path):
 
         if os.path.isdir(os.path.join(file_path, file)):
-            get_file(os.path.join(file_path, file), suffix, res_file_path)
+            get_file(os.path.join(file_path, file), suffix, res_file_path, keyword=keyword)
         else:
-            if not keyword or (keyword and keyword in file):
+            if keyword == "" or (keyword in file):
                 res_file_path.append(os.path.join(file_path, file))
 
     # endswith：表示以suffix结尾。可根据需要自行修改；如：startswith：表示以suffix开头，__contains__：包含suffix字符串

@@ -43,7 +43,8 @@ def analysisOneRunner_times(timesResult :str) -> float:
     return df.median().values[0]
 
 def analysisOneRunnerResult(result :str) -> int:
-    print(result)
+    
+    # print(result)
 
     # #pattern = re.compile(r'indi[\w.]*')   # 查找数字
     # pattern = re.compile(r'(indi[\w.]*)[\w*=. ]*\ntimes:([\d. ]+)')   # 查找数字
@@ -52,7 +53,7 @@ def analysisOneRunnerResult(result :str) -> int:
     ret = re.search(timesPattern, result)
     # 没有找到则为空
     if ret is None:
-        print("string [%s] not searched" % result)
+        print("string [%s] not searched" % result.strip())
         return -1
 
     # print("ret", ret)
